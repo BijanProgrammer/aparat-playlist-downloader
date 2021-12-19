@@ -1,9 +1,9 @@
 {
     "name": "aparat-playlist-downloader",
     "version": "1.0.0",
-    "main": "main.js",
+    "main": "src/main.js",
     "scripts": {
-        "start": "main"
+        "start": "node src/main.js"
     },
     "keywords": [
         "aparat",
@@ -13,5 +13,8 @@
     "license": "MIT",
     "devDependencies": {
         "prettier": "^2.5.1"
+    },
+    "dependencies": {
+        "puppeteer": "^13.0.0"
     }
 }
