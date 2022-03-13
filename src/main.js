@@ -11,7 +11,7 @@ const {printStep, printDivider} = require('./utils/console.utils');
 
 // global variables
 // - env
-const {PAGE_URL, OUTPUT_FOLDER} = process.env;
+const {PAGE_URL, OUTPUT_FOLDER, VIDEO_QUALITY} = process.env;
 
 // - puppeteer
 let BROWSER;
@@ -25,6 +25,19 @@ const JSON_OUTPUT_FILE_PATH = path.join(OUTPUT_FOLDER, 'links.json');
 const HTML_OUTPUT_FILE_PATH = path.join(OUTPUT_FOLDER, 'links.html');
 
 // functions
+const hasAccessToOutputFolder = async () => {
+    printStep('checking access to output folder ...');
+
+    try {
+        await fs.access(OUTPUT_FOLDER);
+        printStep('output folder exists and the program has access to it.');
+        return true;
+    } catch {
+        printStep('failed! either output folder does not exists or the program does not have access to it.');
+        return false;
+    }
+};
+
 const launchTheBrowser = async () => {
     printStep('launching the browser ...');
     BROWSER = await puppeteer.launch();
@@ -47,18 +60,18 @@ const extractVideosMetadata = async () => {
     printStep('extracting video links ...');
 
     const links = await PAGE.evaluate(() =>
-        [...document.querySelectorAll('h2.title a')].map((x) => x.getAttribute('href'))
+        [...document.querySelectorAll('a.title.titled-link')].map((x) => x.getAttribute('href'))
     );
 
     printStep(`found ${links.length} links!`);
 
-    printStep('downloading videos ...');
+    printStep('generating videos metadata ...');
 
     const metadata = [];
     const promises = links.map((link) => extractVideoMetadata(link, metadata));
     await Promise.allSettled(promises);
 
-    printStep('videos has been downloaded successfully ...');
+    printStep('videos metadata has been generated successfully ...');
 
     return metadata;
 };
@@ -73,10 +86,10 @@ const extractVideoMetadata = async (link, output) => {
     element = await page.waitForSelector('[aria-label="download"]');
     await page.evaluate((element) => element.click(), element);
 
-    element = await page.waitForSelector('[id="720p"]');
+    element = await page.waitForSelector(`[id="${VIDEO_QUALITY}"]`);
     const downloadLink = await page.evaluate((element) => element.getAttribute('href'), element);
 
-    const id = downloadLink.match(/.+\/aparat-video\/(.+)-720p\.mp4.+/)[1];
+    const id = downloadLink.match(`.+\/aparat-video\/(.+)-${VIDEO_QUALITY}\.mp4.+`)[1];
 
     output.push({id, name, downloadLink});
 
@@ -84,7 +97,7 @@ const extractVideoMetadata = async (link, output) => {
 };
 
 const saveMetadata = async (metadata) => {
-    await fs.writeFile(JSON_OUTPUT_FILE_PATH, JSON.stringify(metadata), {encoding: 'utf-8'});
+    await fs.writeFile(JSON_OUTPUT_FILE_PATH, JSON.stringify(metadata, null, 4), {encoding: 'utf-8'});
     await fs.writeFile(HTML_OUTPUT_FILE_PATH, generateHtml(metadata), {encoding: 'utf-8'});
 };
 
@@ -97,7 +110,7 @@ const generateHtml = (metadata) => {
 					<title>Links</title>
 				</head>
 				<body>
-					${anchors.join('<br />')}
+					${anchors.join('<br />\n')}
 				</body>
 			</html>`;
 };
@@ -115,6 +128,10 @@ const waitForSeconds = async (milliseconds) => {
 // main
 const main = async () => {
     try {
+        if (!(await hasAccessToOutputFolder())) return;
+
+        printDivider();
+
         await launchTheBrowser();
 
         printDivider();
@@ -132,7 +149,7 @@ const main = async () => {
     } catch (e) {
         console.error(e);
     } finally {
-        await closeTheBrowser();
+        if (BROWSER) await closeTheBrowser();
     }
 };
 
