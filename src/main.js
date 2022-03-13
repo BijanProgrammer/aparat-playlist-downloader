@@ -4,7 +4,7 @@ const path = require('path');
 
 // external imports
 require('dotenv').config({path: '../.env'});
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 
 // local imports
 const {printStep, printDivider} = require('./utils/console.utils');
