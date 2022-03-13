@@ -1,5 +1,6 @@
 {
     "name": "aparat-playlist-downloader",
+    "description": "A Node.js project that uses puppeteer to extract download links of the videos in a playlists from Aparat.",
     "version": "1.0.0",
     "main": "src/main.js",
     "scripts": {
